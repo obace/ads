@@ -37,11 +37,6 @@ function envFlag(name, fallback = false) {
   return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
 }
 
-function envInt(name, fallback) {
-  const value = Number.parseInt(process.env[name] || '', 10);
-  return Number.isFinite(value) ? value : fallback;
-}
-
 function buildWindowsChromeUa(version) {
   return `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version}.0.0.0 Safari/537.36`;
 }

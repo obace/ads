@@ -78,12 +78,20 @@ async function adspowerPost(baseUrl, pathname, payload) {
 }
 
 export async function checkStatus(baseUrl) {
-  const response = await fetch(buildUrl(baseUrl, '/status'));
-  const data = await response.json();
-  if (data.code !== 0) {
-    throw new Error(`AdsPower is not ready: ${data.msg || data.code}`);
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await throttle();
+      const response = await fetch(buildUrl(baseUrl, '/status'), { headers: getAuthHeaders() });
+      const data = await response.json();
+      if (data.code !== 0) {
+        throw new Error(`AdsPower is not ready: ${data.msg || data.code}`);
+      }
+      return data;
+    } catch (error) {
+      if (attempt >= MAX_RETRIES) throw error;
+      await delay(RETRY_DELAY_MS * attempt);
+    }
   }
-  return data;
 }
 
 export async function listGroups(baseUrl) {

@@ -7,13 +7,13 @@ import { generateName, sleep } from './utils.js';
 const SELECTORS = {
   emailInput: 'input[placeholder="username@example.com"], input[name="email"], input[type="email"], input[autocomplete="username"]',
   primaryButton: 'button[data-testid="test-primary-button"], button.awsui-button-variant-primary',
-  kiroSignInLink: 'a[href*="app.kiro.dev"], a[href*="signin.aws"], a[href*="aws.amazon.com"], a',
+  kiroSignInLink: 'a[href*="app.kiro.dev"], a[href*="signin.aws"], a[href*="aws.amazon.com"]',
   firstNameInput: 'input[name="givenName"], input[autocomplete="given-name"], input[name="firstName"]',
   lastNameInput: 'input[name="familyName"], input[autocomplete="family-name"], input[name="lastName"]',
-  fullNameInput: 'input[type="text"][placeholder], input[type="text"]',
+  fullNameInput: 'input[name="name"], input[type="text"][placeholder*="name" i]',
   verificationInput: 'input[inputmode="numeric"], input[name="otp"], input[name="code"]',
-  passwordInput: 'input[placeholder="Enter password"], input[name="password"], input[type="password"][autocomplete="new-password"]',
-  confirmPasswordInput: 'input[placeholder="Re-enter password"], input[name="confirmPassword"], input[type="password"][autocomplete="new-password"]',
+  passwordInput: 'input[placeholder="Enter password"], input[name="password"], input[type="password"]:not([name="confirmPassword"])',
+  confirmPasswordInput: 'input[placeholder="Re-enter password"], input[name="confirmPassword"]',
   deviceConfirmButton: 'button#cli_verification_btn, button[data-testid="confirm-device-button"]',
   allowAccessButton: 'button#cli_login_button, button[data-testid="allow-access-button"], input[type="submit"][value*="Allow"]'
 };
@@ -213,6 +213,9 @@ async function waitForEmailStep(page, account) {
 async function completeBuilderIdFlow(page, account, options) {
   const deadline = Date.now() + 10 * 60 * 1000;
   let emailHandled = false;
+  let emailSubmitted = false;
+  let passwordSubmitted = false;
+  let nameSubmitted = false;
 
   while (Date.now() < deadline) {
     try {
@@ -247,10 +250,13 @@ async function completeBuilderIdFlow(page, account, options) {
     const hasConfirmPassword = await findSelector(page, SELECTORS.confirmPasswordInput);
 
     if (hasPassword && hasConfirmPassword) {
-      await fill(page, SELECTORS.passwordInput, account.password);
-      await fill(page, SELECTORS.confirmPasswordInput, account.password);
-      await sleep(200);
-      await clickButtonByText(page, 'Continue');
+      if (!passwordSubmitted) {
+        await fill(page, SELECTORS.passwordInput, account.password);
+        await fill(page, SELECTORS.confirmPasswordInput, account.password);
+        await sleep(200);
+        await clickButtonByText(page, 'Continue');
+        passwordSubmitted = true;
+      }
       await sleep(1500);
       continue;
     }
@@ -271,10 +277,11 @@ async function completeBuilderIdFlow(page, account, options) {
         return 'awaiting-manual-email';
       }
 
-      if (!options.manualEmail && account.email) {
+      if (!options.manualEmail && account.email && !emailSubmitted) {
         await fill(page, SELECTORS.emailInput, account.email);
         await sleep(200);
         await clickButtonByText(page, 'Continue');
+        emailSubmitted = true;
         await sleep(1500);
         continue;
       }
@@ -283,19 +290,25 @@ async function completeBuilderIdFlow(page, account, options) {
     const hasFirstName = await findSelector(page, SELECTORS.firstNameInput);
     const hasLastName = await findSelector(page, SELECTORS.lastNameInput);
     if (hasFirstName && hasLastName) {
-      await fill(page, SELECTORS.firstNameInput, account.firstName);
-      await fill(page, SELECTORS.lastNameInput, account.lastName);
-      await sleep(200);
-      await clickButtonByText(page, 'Continue');
+      if (!nameSubmitted) {
+        await fill(page, SELECTORS.firstNameInput, account.firstName);
+        await fill(page, SELECTORS.lastNameInput, account.lastName);
+        await sleep(200);
+        await clickButtonByText(page, 'Continue');
+        nameSubmitted = true;
+      }
       await sleep(1500);
       continue;
     }
 
     const fullNameInput = await findSelector(page, SELECTORS.fullNameInput);
     if (fullNameInput && text.includes('Enter your name')) {
-      await fill(page, SELECTORS.fullNameInput, `${account.firstName} ${account.lastName}`);
-      await sleep(200);
-      await clickButtonByText(page, 'Continue');
+      if (!nameSubmitted) {
+        await fill(page, SELECTORS.fullNameInput, `${account.firstName} ${account.lastName}`);
+        await sleep(200);
+        await clickButtonByText(page, 'Continue');
+        nameSubmitted = true;
+      }
       await sleep(1500);
       continue;
     }
@@ -316,8 +329,8 @@ async function completeBuilderIdFlow(page, account, options) {
         await fill(page, SELECTORS.verificationInput, options.verificationCode);
         await sleep(200);
         await clickButtonByText(page, 'Continue');
-        await sleep(1500);
-        return null;
+        await sleep(3000);
+        continue;
       }
       await waitForManualVerification(page);
       return 'awaiting-manual-verification';

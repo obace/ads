@@ -135,8 +135,13 @@ async function main() {
       const nextState = await session.continueFlow(verificationCode);
       if (nextState === 'completed') {
         token = await session.pollToken?.();
-      } else {
+        break;
+      } else if (nextState === 'awaiting-manual-verification' || nextState === 'awaiting-manual-email') {
         session.state = nextState;
+      } else {
+        // 流程正常结束但没有明确状态，尝试拿 token
+        token = await session.pollToken?.();
+        break;
       }
     }
 
