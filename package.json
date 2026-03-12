@@ -6,7 +6,8 @@
   "description": "AWS Builder ID automation scaffold powered by AdsPower Local API and Puppeteer",
   "scripts": {
     "start": "node src/index.js",
-    "check": "node --check src/index.js"
+    "extract": "node src/extract.js",
+    "check": "node --check src/index.js && node --check src/extract.js"
   },
   "dependencies": {
     "puppeteer-core": "^24.5.0"

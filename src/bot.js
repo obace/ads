@@ -454,28 +454,21 @@ export async function runRegistration(config, startInfo) {
     email: config.accountEmail
   };
 
-  const auth = config.useKiroEntry ? null : new AWSDeviceAuth(config.awsStartUrl);
-  const authInfo = auth ? await auth.quickAuth() : null;
-
   let page;
   try {
     page = await browser.newPage();
     if (config.useKiroEntry) {
       await enterViaKiro(page, config.kiroEntryUrl);
     } else {
+      const auth = new AWSDeviceAuth(config.awsStartUrl);
+      const authInfo = await auth.quickAuth();
       await page.goto(authInfo.verificationUriComplete, { waitUntil: 'domcontentloaded' });
     }
 
     console.log(`Profile: ${config.profileId}`);
-    if (account.email) {
-      console.log(`Email: ${account.email}`);
-    }
+    if (account.email) console.log(`Email: ${account.email}`);
     console.log(`Password: ${account.password}`);
-    if (authInfo?.verificationUriComplete) {
-      console.log(`AWS verify URL: ${authInfo.verificationUriComplete}`);
-    } else {
-      console.log(`Entry URL: ${config.kiroEntryUrl}`);
-    }
+    console.log(`Entry: ${config.useKiroEntry ? config.kiroEntryUrl : 'device-flow'}`);
 
     const continueFlow = async (verificationCode) => completeBuilderIdFlow(page, account, {
       manualEmail: false,
@@ -485,39 +478,26 @@ export async function runRegistration(config, startInfo) {
     const result = await completeBuilderIdFlow(page, account, {
       manualEmail: config.manualEmail
     });
+
     if (result === 'awaiting-manual-email' || (result === 'awaiting-manual-verification' && config.waitForManualVerification)) {
       return {
         account,
-        authInfo,
         page,
         state: result,
         close: async () => {
-          if (page && !page.isClosed()) {
-            await page.close().catch(() => {});
-          }
+          if (page && !page.isClosed()) await page.close().catch(() => {});
           await browser.disconnect();
         },
-        continueFlow,
-        pollToken: config.useKiroEntry || !config.saveRefreshToken
-          ? async () => {
-              await waitForCompletionPage(page).catch(() => {});
-              return null;
-            }
-          : async () => {
-              await waitForCompletionPage(page).catch(() => {});
-              return pollToken(auth);
-            }
+        continueFlow
       };
     }
 
-    const token = auth && config.saveRefreshToken ? await pollToken(auth) : null;
+    // Registration completed without manual steps
     await page.close().catch(() => {});
     await browser.disconnect();
-    return { account, authInfo, token };
+    return { account };
   } catch (error) {
-    if (page && !page.isClosed()) {
-      await page.close().catch(() => {});
-    }
+    if (page && !page.isClosed()) await page.close().catch(() => {});
     await browser.disconnect();
     throw error;
   }
