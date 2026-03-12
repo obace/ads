@@ -2,9 +2,9 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { loadConfig } from './config.js';
-import { createProfile, deleteProfile, listGroups, startProfile, stopProfile } from './adspower.js';
+import { checkStatus, createProfile, deleteProfile, isProfileActive, listGroups, startProfile, stopProfile } from './adspower.js';
 import { runRegistration } from './bot.js';
-import { generateEmailPrefix, generateName, log, prompt } from './utils.js';
+import { generateEmailPrefix, generateName, log, prompt, sleep } from './utils.js';
 
 async function saveResult(result, config) {
   const filePath = path.resolve(process.cwd(), 'output.txt');
@@ -75,6 +75,10 @@ async function markEmailAsUsed(config, email) {
 
 async function main() {
   const config = loadConfig();
+
+  await checkStatus(config.adspowerBaseUrl);
+  log('info', 'AdsPower API is ready');
+
   if (!config.accountEmail) {
     config.accountEmail = await pickEmailFromPool(config);
   }
@@ -100,6 +104,11 @@ async function main() {
   config.profileId = profileId;
 
   const startInfo = await startProfile(config.adspowerBaseUrl, profileId, config.adspowerHeadless);
+
+  for (let i = 0; i < 10; i++) {
+    if (await isProfileActive(config.adspowerBaseUrl, profileId).catch(() => false)) break;
+    await sleep(1000);
+  }
 
   let cleanupDone = false;
   async function cleanup() {

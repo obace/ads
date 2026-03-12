@@ -2,9 +2,21 @@ import process from 'node:process';
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
+const MIN_REQUEST_INTERVAL_MS = 500;
+
+let lastRequestTime = 0;
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function throttle() {
+  const now = Date.now();
+  const elapsed = now - lastRequestTime;
+  if (elapsed < MIN_REQUEST_INTERVAL_MS) {
+    await delay(MIN_REQUEST_INTERVAL_MS - elapsed);
+  }
+  lastRequestTime = Date.now();
 }
 
 function buildUrl(baseUrl, pathname, query = {}) {
@@ -25,6 +37,7 @@ function getAuthHeaders() {
 async function adspowerGet(baseUrl, pathname, query) {
   for (let attempt = 1; ; attempt++) {
     try {
+      await throttle();
       const response = await fetch(buildUrl(baseUrl, pathname, query), {
         headers: getAuthHeaders()
       });
@@ -43,6 +56,7 @@ async function adspowerGet(baseUrl, pathname, query) {
 async function adspowerPost(baseUrl, pathname, payload) {
   for (let attempt = 1; ; attempt++) {
     try {
+      await throttle();
       const response = await fetch(buildUrl(baseUrl, pathname), {
         method: 'POST',
         headers: {
@@ -61,6 +75,15 @@ async function adspowerPost(baseUrl, pathname, payload) {
       await delay(RETRY_DELAY_MS * attempt);
     }
   }
+}
+
+export async function checkStatus(baseUrl) {
+  const response = await fetch(buildUrl(baseUrl, '/status'));
+  const data = await response.json();
+  if (data.code !== 0) {
+    throw new Error(`AdsPower is not ready: ${data.msg || data.code}`);
+  }
+  return data;
 }
 
 export async function listGroups(baseUrl) {
@@ -99,6 +122,11 @@ export async function createProfile(baseUrl, options) {
       flash: options.fingerprint.flash,
       location: options.fingerprint.location,
       scan_port_type: options.fingerprint.scanPortType,
+      media_devices: options.fingerprint.mediaDevices,
+      client_rects: options.fingerprint.clientRects,
+      speech_switch: options.fingerprint.speechSwitch,
+      device_name_switch: options.fingerprint.deviceNameSwitch,
+      mac_address_config: options.fingerprint.macAddressConfig,
       browser_kernel_config: {
         type: 'chrome',
         version: options.fingerprint.kernelVersion
@@ -154,8 +182,25 @@ export async function stopProfile(baseUrl, profileId) {
   await adspowerPost(baseUrl, '/api/v2/browser-profile/stop', { profile_id: profileId });
 }
 
+export async function isProfileActive(baseUrl, profileId) {
+  const data = await adspowerGet(baseUrl, '/api/v2/browser-profile/active', { profile_id: profileId });
+  return data?.status === 'Active';
+}
+
 export async function deleteProfile(baseUrl, profileId) {
   await adspowerPost(baseUrl, '/api/v2/browser-profile/delete', {
     profile_id: [profileId]
   });
+}
+
+export async function createProxy(baseUrl, options) {
+  return adspowerPost(baseUrl, '/api/v2/proxy-list/create', options);
+}
+
+export async function listProxies(baseUrl, options = {}) {
+  return adspowerPost(baseUrl, '/api/v2/proxy-list/list', { page: 1, page_size: 100, ...options });
+}
+
+export async function deleteProxy(baseUrl, ids) {
+  return adspowerPost(baseUrl, '/api/v2/proxy-list/delete', { ids: Array.isArray(ids) ? ids : [ids] });
 }

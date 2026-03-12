@@ -162,6 +162,8 @@ SAVE_REFRESH_TOKEN=1
 
 这比“随机得过头”更像真实环境。
 
+> **注意**：WebRTC 默认使用 `forward` 模式，需要 AdsPower 内核版本 V2.6.8.6 以上。如果版本不够，会静默回退到 `disabled`，可能导致指纹不一致。可在 `.env` 中设置 `BROWSER_WEBRTC=disabled` 手动降级。
+
 ## 邮箱选择逻辑
 
 脚本选邮箱的优先级是：

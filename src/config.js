@@ -102,7 +102,12 @@ export function loadConfig() {
       automaticTimezone: process.env.BROWSER_AUTOMATIC_TIMEZONE?.trim() || '1',
       languageSwitch: process.env.BROWSER_LANGUAGE_SWITCH?.trim() || '0',
       pageLanguageSwitch: process.env.BROWSER_PAGE_LANGUAGE_SWITCH?.trim() || '0',
-      scanPortType: process.env.BROWSER_SCAN_PORT_TYPE?.trim() || '1'
+      scanPortType: process.env.BROWSER_SCAN_PORT_TYPE?.trim() || '1',
+      mediaDevices: process.env.BROWSER_MEDIA_DEVICES?.trim() || '1',
+      clientRects: process.env.BROWSER_CLIENT_RECTS?.trim() || '1',
+      speechSwitch: process.env.BROWSER_SPEECH_SWITCH?.trim() || '1',
+      deviceNameSwitch: process.env.BROWSER_DEVICE_NAME_SWITCH?.trim() || '1',
+      macAddressConfig: JSON.parse(process.env.BROWSER_MAC_ADDRESS_CONFIG?.trim() || '{"model":"1","address":""}')
     },
     manualEmail: envFlag('MANUAL_EMAIL', false),
     waitForManualVerification: envFlag('WAIT_FOR_MANUAL_VERIFICATION', true),
