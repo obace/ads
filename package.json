@@ -1,0 +1,14 @@
+{
+  "name": "adspower-aws-builderid-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AWS Builder ID automation scaffold powered by AdsPower Local API and Puppeteer",
+  "scripts": {
+    "start": "node src/index.js",
+    "check": "node --check src/index.js"
+  },
+  "dependencies": {
+    "puppeteer-core": "^24.5.0"
+  }
+}

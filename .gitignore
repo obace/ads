@@ -1,0 +1,6 @@
+node_modules/
+.env
+output.txt
+used-emails.txt
+debug/
+run.log
