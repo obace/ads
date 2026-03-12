@@ -71,7 +71,6 @@ export function loadConfig() {
     },
     accountPassword: process.env.ACCOUNT_PASSWORD?.trim() || generatePassword(14),
     accountEmail: process.env.ACCOUNT_EMAIL?.trim() || '',
-    accountEmailDomain: process.env.ACCOUNT_EMAIL_DOMAIN?.trim() || '',
     accountEmailPoolFile: process.env.ACCOUNT_EMAIL_POOL_FILE?.trim() || 'emails.txt',
     usedEmailPoolFile: process.env.USED_EMAIL_POOL_FILE?.trim() || 'used-emails.txt',
     fingerprint: {

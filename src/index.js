@@ -4,7 +4,7 @@ import process from 'node:process';
 import { loadConfig } from './config.js';
 import { checkStatus, createProfile, deleteProfile, isProfileActive, listGroups, startProfile, stopProfile } from './adspower.js';
 import { runRegistration } from './bot.js';
-import { generateEmailPrefix, generateName, log, prompt, sleep } from './utils.js';
+import { generateName, log, prompt, sleep } from './utils.js';
 
 async function saveResult(result, config) {
   const filePath = path.resolve(process.cwd(), 'output.txt');
@@ -81,10 +81,6 @@ async function main() {
 
   if (!config.accountEmail) {
     config.accountEmail = await pickEmailFromPool(config);
-  }
-  if (!config.accountEmail && config.accountEmailDomain) {
-    const { firstName, lastName } = generateName();
-    config.accountEmail = `${generateEmailPrefix(firstName, lastName)}@${config.accountEmailDomain}`;
   }
   if (!config.accountEmail) {
     config.accountEmail = (await prompt('Enter the email address to register with: ')).trim();
